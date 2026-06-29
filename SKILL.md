@@ -375,7 +375,7 @@ Translate the title to the target language. For Chinese, wrap in 书名号: `《
 Run the build script with the translated title:
 
 ```bash
-python3 {baseDir}/scripts/merge_and_build.py --temp-dir "<temp_dir>" --title "<translated_title>" --pdf-only --cleanup
+python3 {baseDir}/scripts/merge_and_build.py --temp-dir "<temp_dir>" --title "<translated_title>" --pdf-only --cleanup --copy-to-parent
 ```
 
 If the user provided `epub_cover`, add `--cover "<epub_cover>"`. If the user
@@ -391,6 +391,9 @@ This produces in the temp directory:
 - `book.html` — web version with floating TOC
 - `book_doc.html` — ebook/print source HTML
 - `book.pdf` — print-quality PDF (WeasyPrint, 6×9 inch, professional typography)
+
+And copies to the parent directory (next to the temp folder):
+- `<translated_title>.pdf` — PDF named after the translated book title
 
 ### 8. Report Results
 

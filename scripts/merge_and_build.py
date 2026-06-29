@@ -1084,6 +1084,44 @@ def _validate_export_name(name):
     return name.strip()
 
 
+def sanitize_filename(name):
+    """Sanitize a title string for use as a cross-platform filename stem."""
+    # Strip Chinese book title markers
+    name = name.strip('《》')
+    # Replace characters invalid on Windows/macOS/Linux
+    name = re.sub(r'[/\\:*?"<>|\x00]', '_', name)
+    # Strip leading/trailing whitespace and dots
+    name = name.strip('. ')
+    # Truncate to leave room for extension
+    if len(name) > 200:
+        name = name[:200]
+    return name or 'book'
+
+
+def copy_pdf_to_parent(temp_dir, title):
+    """Copy book.pdf to the parent directory with a title-based filename."""
+    pdf_src = os.path.join(temp_dir, 'book.pdf')
+    if not os.path.exists(pdf_src):
+        print("WARNING: book.pdf not found, cannot copy to parent directory")
+        return None
+
+    parent_dir = os.path.dirname(os.path.abspath(temp_dir))
+    stem = sanitize_filename(title)
+    dst = os.path.join(parent_dir, f"{stem}.pdf")
+
+    if os.path.abspath(pdf_src) == os.path.abspath(dst):
+        return dst
+
+    try:
+        shutil.copy2(pdf_src, dst)
+        file_size = os.path.getsize(dst)
+        print(f"PDF copied to parent: {dst} ({file_size:,} bytes)")
+        return dst
+    except Exception as e:
+        print(f"WARNING: Could not copy PDF to parent directory: {e}")
+        return None
+
+
 def export_named_aliases(temp_dir, export_name):
     """Copy canonical outputs to optional user-facing filenames.
 
@@ -1126,6 +1164,7 @@ def main():
     parser.add_argument('--export-name', default=None, help='Optional filename stem for exported alias copies')
     parser.add_argument('--cleanup', action='store_true', help='Remove intermediate artifacts after successful build')
     parser.add_argument('--pdf-only', action='store_true', help='Generate only PDF, skip DOCX and EPUB')
+    parser.add_argument('--copy-to-parent', action='store_true', help='Copy the PDF to the parent directory with a title-based filename')
 
     args = parser.parse_args()
     temp_dir = args.temp_dir
@@ -1187,6 +1226,12 @@ def main():
                     print(f"  {name}")
         else:
             print("\nSkipping export aliases — some formats failed.")
+
+    if args.copy_to_parent and title:
+        if all_formats_ok:
+            copy_pdf_to_parent(temp_dir, title)
+        else:
+            print("\nSkipping copy to parent — PDF generation failed.")
 
     if args.pdf_only:
         print("(DOCX and EPUB skipped — pdf-only mode)")
