@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="$lang$">
+<head>
+<meta charset="UTF-8">
+<title>$title$</title>
+<style>
+
+/* ================================================================
+   BEAUTIFUL BOOK TEMPLATE — WeasyPrint
+   Khổ 6×9 inch · Navy #1a1a2e + Gold #c8a96e
+   Body: DejaVu Serif · Headings: Lato/Liberation Sans
+   First-line small-caps thay drop cap (tương thích đa ngôn ngữ)
+   ================================================================ */
+
+/* ---------- TRANG (6×9 inch — khổ sách tiêu chuẩn) ---------- */
+@page {
+    size: 6in 9in;
+    margin-top:    0.85in;
+    margin-bottom: 0.9in;
+    margin-left:   0.82in;
+    margin-right:  0.78in;
+
+    /* Running header: tên chương hiện tại, căn giữa, in nghiêng */
+    @top-center {
+        content: string(chapter-title, first-except);
+        font-family: "Lato", "Liberation Sans", sans-serif;
+        font-size: 7.5pt;
+        color: #999;
+        font-style: italic;
+        letter-spacing: 0.04em;
+        vertical-align: bottom;
+        padding-bottom: 5pt;
+        border-bottom: 0.4pt solid #ddd;
+        width: 100%;
+        text-align: center;
+    }
+
+    /* Số trang */
+    @bottom-center {
+        content: counter(page);
+        font-family: "Lato", "Liberation Sans", sans-serif;
+        font-size: 9pt;
+        color: #aaa;
+        letter-spacing: 0.2em;
+        padding-top: 6pt;
+        vertical-align: top;
+    }
+}
+
+/* Trang đầu tiên: bỏ header/footer */
+@page :first {
+    @top-center    { content: none; border: none; }
+    @bottom-center { content: none; }
+}
+
+/* Trang trắng */
+@page :blank {
+    @top-center    { content: none; border: none; }
+    @bottom-center { content: none; }
+}
+
+/* ---------- BASE TYPOGRAPHY ---------- */
+html { font-size: 10.8pt; }
+
+body {
+    font-family: "DejaVu Serif", Georgia, serif;
+    line-height: 1.80;
+    color: #1c1c1c;
+    text-align: justify;
+    hyphens: auto;
+    hyphenate-limit-chars: 7 3 3;
+    orphans: 3;
+    widows: 3;
+}
+
+/* ---------- H1 — phần / bìa ---------- */
+h1 {
+    font-family: "Lato", "Liberation Sans", sans-serif;
+    font-size: 20pt;
+    font-weight: 900;
+    text-align: center;
+    page-break-before: always;
+    break-before: page;
+    margin-top: 1.8in;
+    margin-bottom: 0.15in;
+    line-height: 1.2;
+    color: #1a1a2e;
+    letter-spacing: -0.01em;
+}
+
+h1::after {
+    content: "";
+    display: block;
+    width: 1.5in;
+    height: 2pt;
+    background: #c8a96e;
+    margin: 0.22in auto 0;
+}
+
+/* ---------- H2 — chương ---------- */
+h2 {
+    /* Ghi tên chương để hiển thị ở running header */
+    string-set: chapter-title content(text);
+
+    font-family: "Lato", "Liberation Sans", sans-serif;
+    font-size: 14.5pt;
+    font-weight: 700;
+    text-align: center;
+    page-break-before: always;
+    break-before: page;
+    margin-top: 0;
+    margin-bottom: 0.4in;
+    padding-top: 0.75in;
+    line-height: 1.3;
+    color: #1a1a2e;
+    page-break-after: avoid;
+    break-after: avoid;
+}
+
+/* Thanh vàng trước tên chương */
+h2::before {
+    content: "";
+    display: block;
+    width: 0.35in;
+    height: 3pt;
+    background: #c8a96e;
+    margin: 0 auto 0.18in;
+    border-radius: 1pt;
+}
+
+/* Đường kẻ mảnh sau tên chương */
+h2::after {
+    content: "";
+    display: block;
+    width: 1.1in;
+    height: 0.5pt;
+    background: #ddd;
+    margin: 0.22in auto 0;
+}
+
+/* ---------- H3 — mục ---------- */
+h3 {
+    font-family: "Lato", "Liberation Sans", sans-serif;
+    font-size: 9pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-top: 0.42in;
+    margin-bottom: 0.1in;
+    color: #1a1a2e;
+    page-break-after: avoid;
+    break-after: avoid;
+}
+
+/* ---------- H4 ---------- */
+h4 {
+    font-family: "Lato", "Liberation Sans", sans-serif;
+    font-size: 10.8pt;
+    font-weight: 700;
+    font-style: italic;
+    margin-top: 0.28in;
+    margin-bottom: 0.07in;
+    color: #2c2c3e;
+    page-break-after: avoid;
+    break-after: avoid;
+}
+
+h5, h6 {
+    font-family: "Lato", "Liberation Sans", sans-serif;
+    font-size: 10pt;
+    font-weight: 600;
+    margin-top: 0.18in;
+    margin-bottom: 0.05in;
+    color: #333;
+    page-break-after: avoid;
+    break-after: avoid;
+}
+
+/* ---------- PARAGRAPHS ---------- */
+p {
+    margin: 0;
+    text-indent: 1.5em;
+    orphans: 3;
+    widows: 3;
+}
+
+/* Không thụt sau heading / block element */
+h1+p, h2+p, h3+p, h4+p, h5+p, h6+p,
+blockquote+p, ul+p, ol+p,
+table+p, figure+p, img+p, hr+p {
+    text-indent: 0;
+}
+
+/* Dòng đầu tiên của chương: small-caps thay drop cap.
+   Drop cap (::first-letter) gây lỗi với ngôn ngữ có cụm phụ âm đầu như
+   Kh-, Th-, Ch-, Ph-, Tr- (tiếng Việt), Sch- (tiếng Đức), v.v. */
+h2 + p:first-line,
+h2 + div > p:first-child:first-line {
+    font-variant: small-caps;
+    letter-spacing: 0.06em;
+    font-size: 0.95em;
+    color: #2a2a2a;
+}
+
+/* ---------- BLOCKQUOTES / TRÍCH DẪN ---------- */
+blockquote {
+    margin: 0.28in 0.3in;
+    padding: 0.12in 0.18in 0.12in 0.32in;
+    border-left: 3pt solid #c8a96e;
+    background: #faf9f6;
+    font-style: italic;
+    color: #3a3a3a;
+    position: relative;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+blockquote::before {
+    content: "\201C";
+    font-family: Georgia, "DejaVu Serif", serif;
+    font-size: 34pt;
+    color: #c8a96e;
+    opacity: 0.45;
+    position: absolute;
+    top: -0.04in;
+    left: 0.04in;
+    line-height: 1;
+}
+
+blockquote p {
+    text-indent: 0;
+    line-height: 1.65;
+    margin-left: 0.12in;
+}
+
+/* ---------- HÌNH ẢNH ---------- */
+img {
+    max-width: 88%;
+    height: auto;
+    display: block;
+    margin: 0.28in auto;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+figure {
+    margin: 0.28in auto;
+    text-align: center;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+figcaption {
+    font-family: "Lato", "Liberation Sans", sans-serif;
+    font-size: 8pt;
+    color: #888;
+    font-style: italic;
+    margin-top: 0.08in;
+    text-align: center;
+    text-indent: 0;
+}
+
+/* ---------- DANH SÁCH ---------- */
+ul, ol {
+    margin: 0.15in 0;
+    padding-left: 0.28in;
+}
+
+li {
+    margin-bottom: 0.05in;
+    line-height: 1.68;
+    orphans: 2;
+    widows: 2;
+}
+
+li p { text-indent: 0; }
+
+/* ---------- ĐƯỜNG PHÂN CÁCH ---------- */
+hr {
+    border: none;
+    text-align: center;
+    margin: 0.32in auto;
+    height: 1em;
+}
+
+hr::after {
+    content: "\2015  \2015  \2015";
+    font-size: 8pt;
+    color: #c8a96e;
+    letter-spacing: 0.3em;
+}
+
+/* ---------- BẢNG ---------- */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.22in 0;
+    font-size: 9.2pt;
+    font-family: "Lato", "Liberation Sans", sans-serif;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+th {
+    background: #1a1a2e;
+    color: #fff;
+    font-weight: 600;
+    padding: 0.09in 0.14in;
+    font-size: 8pt;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-align: left;
+}
+
+td {
+    border-bottom: 0.4pt solid #e8e4df;
+    padding: 0.08in 0.14in;
+    vertical-align: top;
+    color: #222;
+}
+
+tr:nth-child(even) td { background: #faf9f6; }
+
+/* ---------- INLINE ---------- */
+strong, b { font-weight: 700; color: #111; }
+em, i     { font-style: italic; }
+a         { color: inherit; text-decoration: none; }
+
+sup {
+    font-size: 6.5pt;
+    color: #c8a96e;
+    font-weight: bold;
+    line-height: 0;
+    vertical-align: super;
+}
+
+/* ---------- CODE ---------- */
+code {
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 8.5pt;
+    background: #f4f2ef;
+    padding: 0.02in 0.06in;
+    border-radius: 2pt;
+}
+
+pre {
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 8.2pt;
+    background: #f4f2ef;
+    border-left: 3pt solid #c8a96e;
+    padding: 0.14in;
+    margin: 0.18in 0;
+    white-space: pre-wrap;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+pre code { background: none; padding: 0; }
+
+/* ---------- GHI CHÚ CUỐI ---------- */
+.footnotes, .endnotes {
+    font-size: 8.8pt;
+    color: #555;
+    border-top: 0.4pt solid #ddd;
+    margin-top: 0.3in;
+    padding-top: 0.12in;
+}
+
+ol li { font-size: 9pt; line-height: 1.55; color: #444; }
+
+/* Small caps helper class */
+.scap { font-variant: small-caps; letter-spacing: 0.04em; }
+
+</style>
+</head>
+<body>
+$body$
+</body>
+</html>
