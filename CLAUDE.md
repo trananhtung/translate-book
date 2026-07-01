@@ -15,6 +15,7 @@ translate-book is a Claude Code Skill that translates books (PDF/DOCX/EPUB) into
 - `scripts/merge_meta.py` — Batch-boundary merge of sub-agent observations into the canonical glossary
 - `scripts/run_state.py` — Selective re-translation planner and run_state.json recorder
 - `scripts/merge_and_build.py` — Merge translated chunks → HTML/DOCX/EPUB/PDF
+- `scripts/pdf_qa.py` — Render the built PDF to page images + cheap programmatic layout checks; backs the Step 7.5 QA visual-check loop (`render` samples/renders pages, `clean` deletes cached artifacts to force a rebuild)
 - `scripts/calibre_html_publish.py` — Calibre format conversion wrapper
 - `scripts/template.html`, `scripts/template_ebook.html` — HTML templates
 
@@ -37,6 +38,7 @@ Verify: all output_chunk*.md files exist, manifest validation passes, output for
 - SKILL.md frontmatter must stay single-line per field (OpenClaw parser requirement)
 - Script paths in SKILL.md use `{baseDir}` not hardcoded paths
 - Subagent instructions in SKILL.md must be platform-neutral (work on Claude Code, OpenClaw, Codex)
+- The Step 7.5 QA loop must call `pdf_qa.py clean` before each rebuild — a template-only edit is invisible to the mtime-based build skip-logic, so the cached `book.*` artifacts must be deleted to force regeneration (do not add mtime tracking to work around this — see "Do not" below)
 - README changes must be synced to both README.md and README.zh-CN.md
 - Releases follow `.claude/commands/release.md` — three commands in order: `git push origin main`, `git tag vX.Y.Z && git push --tags`, `npx clawhub@latest publish ./ --version X.Y.Z`. Do not skip the git tag; it's the only version anchor in the repo
 
