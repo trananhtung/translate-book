@@ -44,6 +44,11 @@ Input (PDF / DOCX / EPUB)
         ▼
   Merge → Pandoc → HTML → WeasyPrint PDF
   (6×9 inch, professional typography, running chapter headers)
+        │
+        ▼
+  QA visual-check loop  (up to 5 iterations)
+  render sampled pages → images → sub-agent inspects layout
+  → fix template CSS / content chunk → rebuild → repeat until clean
 ```
 
 ---
@@ -162,6 +167,7 @@ To use a custom template, replace `scripts/template_print.html` with any WeasyPr
 - **Neighbor context** — sub-agents see the tail of the previous chunk and head of the next for pronoun and entity continuity
 - **Meta observations** — sub-agents report new entities and terminology conflicts; merged into the glossary between batches
 - **PDF-only mode** — `--pdf-only` skips DOCX/EPUB generation (faster, no Calibre dependency for final output)
+- **QA visual-check loop** — after the PDF is built, `pdf_qa.py` renders sampled pages to images (front matter, chapter starts, back matter, evenly-spaced samples, and any page flagged by cheap text checks for leaked Markdown, near-blank layout, or overflow). A sub-agent inspects the images for presentation errors; template-CSS or content fixes are applied and the PDF is rebuilt, up to 5 iterations, until it renders cleanly
 
 ---
 

@@ -375,14 +375,15 @@ Translate the title to the target language. For Chinese, wrap in 书名号: `《
 Run the build script with the translated title:
 
 ```bash
-python3 {baseDir}/scripts/merge_and_build.py --temp-dir "<temp_dir>" --title "<translated_title>" --pdf-only --cleanup --copy-to-parent
+python3 {baseDir}/scripts/merge_and_build.py --temp-dir "<temp_dir>" --title "<translated_title>" --pdf-only
 ```
 
-If the user provided `epub_cover`, add `--cover "<epub_cover>"`. If the user
-provided `export_name`, add `--export-name "<export_name>"`.
+**Do NOT pass `--cleanup` or `--copy-to-parent` here.** They are deferred to
+Step 7.6 (Finalize): the QA loop in Step 7.5 needs the intermediate
+`output_chunk*.md` files to apply content fixes, and the copy placed next to the
+temp folder must be the QA-approved PDF, not this first draft.
 
 The `--pdf-only` flag skips DOCX and EPUB generation — only the PDF is produced (default behavior).
-The `--cleanup` flag removes intermediate files (chunks, input.html, etc.) after a fully successful build. If the user asked to keep intermediates, omit `--cleanup`.
 
 The script reads `output_lang` from `config.txt` automatically. Optional overrides: `--lang`, `--author`.
 
@@ -392,7 +393,106 @@ This produces in the temp directory:
 - `book_doc.html` — ebook/print source HTML
 - `book.pdf` — print-quality PDF (WeasyPrint, 6×9 inch, professional typography)
 
-And copies to the parent directory (next to the temp folder):
+### 7.5. QA Visual Check Loop
+
+Render the built PDF to page images, inspect them for presentation/layout
+errors, fix, and rebuild — up to **5 iterations**. This runs by default; skip it
+only if the user explicitly opts out.
+
+Set `iteration = 1`. Repeat while `iteration <= 5`:
+
+1. **Render + programmatic checks**:
+
+   ```bash
+   python3 {baseDir}/scripts/pdf_qa.py render "<temp_dir>" --iteration <iteration>
+   ```
+
+   This writes `<temp_dir>/qa_report.json` and PNG page images under
+   `<temp_dir>/qa_images/iter<iteration>/`. The report contains:
+   - `rendered_pages` — the sampled pages (front matter, chapter starts, back
+     matter, evenly-spaced samples, plus every programmatically-flagged page),
+     each with its image `path` and selection `reason`. Sampling is capped at
+     `--max-pages` (default 24) per iteration; `dropped_pages` reports how many
+     candidates were cut by the budget.
+   - `programmatic_findings` — pages flagged by cheap text checks: `md_leak:*`
+     (literal Markdown that failed to render), `near_blank`, `replacement_char`
+     (�), `overlong_token` (overflow risk).
+
+2. **Visual QA inspection**: dispatch one or more QA sub-agents (use whatever
+   sub-agent mechanism your runtime provides). Split the `rendered_pages` image
+   paths across sub-agents up to `concurrency`. Give each sub-agent the image
+   paths for its pages and this task:
+
+   > Inspect each page image for book presentation/layout errors. Return a JSON
+   > array of findings, each object:
+   > `{"page": N, "type": "text_overflow|image_overflow|broken_table|orphan_heading|blank_page|garbled_text|missing_glyph|markdown_leak|toc_misalign|bad_page_break|other", "severity": "critical|major|minor", "fix_target": "template|content|unknown", "description": "...", "suggested_fix": "..."}`.
+   > Check for: text or images bleeding outside the page margins; tables split or
+   > misaligned; a heading stranded alone at the bottom of a page or at the wrong
+   > hierarchy level; unintended blank pages; tofu/□ boxes or missing glyphs for
+   > the target language (a font problem); literal Markdown (`##`, `**`, `](`,
+   > `![`) shown as text; misaligned TOC page numbers; bad page breaks
+   > (widows/orphans, a chapter not starting on a new page); images at the wrong
+   > scale or covering text. Return `[]` for a clean page. Report only real,
+   > visible problems — do not invent issues.
+
+   If the runtime's sub-agents cannot read images (no vision), skip the visual
+   inspection and rely on `programmatic_findings` alone; note this limitation in
+   the report.
+
+3. **Aggregate** the visual findings with `programmatic_findings` (each
+   `md_leak:*` flag is a `markdown_leak` finding with `fix_target: content`).
+   Keep `critical` and `major` findings as blocking; treat `minor`/nitpicks as
+   non-blocking.
+
+4. **If no blocking findings remain** → the PDF passed QA. Break out of the loop.
+
+5. **Otherwise, apply fixes** for each blocking finding:
+   - `fix_target: template` (overflow, margins, page breaks, table sizing,
+     missing glyphs/fonts, image scale) → edit
+     `{baseDir}/scripts/template_print.html` (**CSS only**). Examples: add a
+     target-language font (e.g. a CJK family) to the `body`/heading
+     `font-family` stack to fix tofu; reduce `img { max-width }`; adjust `@page`
+     margins, `page-break-*`, `hyphenate-*`, or table `font-size`. Do not change
+     the pipeline structure.
+   - `fix_target: content` (markdown leak, wrong heading level, broken image
+     reference, untranslated text) → edit the specific
+     `<temp_dir>/output_chunk<NNNN>.md` file(s) behind the page. Fix only the
+     reported defect; never rewrite unrelated translation.
+
+6. **Rebuild**:
+
+   ```bash
+   python3 {baseDir}/scripts/pdf_qa.py clean "<temp_dir>"
+   python3 {baseDir}/scripts/merge_and_build.py --temp-dir "<temp_dir>" --title "<translated_title>" --pdf-only
+   ```
+
+   `pdf_qa.py clean` deletes `book.html`, `book_doc.html`, and `book.pdf` so the
+   rebuild regenerates them from the current template and chunks — the build's
+   skip-logic is mtime-based and will not otherwise pick up a template-only edit.
+   A `content` fix to `output_chunk*.md` triggers an automatic re-merge because
+   the chunk becomes newer than `output.md`.
+
+7. `iteration += 1`.
+
+Track which findings were fixed and which remain. If the loop exhausts 5
+iterations with blocking findings still present, **do NOT fail the pipeline** —
+carry the remaining findings into the Step 8 report and point the user at
+`qa_images/` to review them.
+
+### 7.6. Finalize Output
+
+After QA passes (or the loop ends), copy the QA-approved PDF to the parent
+directory and clean up intermediates:
+
+```bash
+python3 {baseDir}/scripts/merge_and_build.py --temp-dir "<temp_dir>" --title "<translated_title>" --pdf-only --copy-to-parent
+```
+
+Add `--cleanup` unless the user asked to keep intermediates, and
+`--cover "<epub_cover>"` / `--export-name "<export_name>"` if those were
+provided. Because `book.pdf` is already up to date from Step 7.5, this run skips
+the rebuild and just copies the approved PDF to the parent directory (next to
+the temp folder) as:
 - `<translated_title>.pdf` — PDF named after the translated book title
 
 ### 8. Report Results
@@ -403,3 +503,6 @@ Tell the user:
 - The translated title
 - List generated output files with sizes
 - Any format generation failures
+- QA result: how many QA iterations ran, whether the PDF passed, the findings
+  that were fixed, and any blocking findings still remaining after 5 iterations
+  (point the user at `qa_images/` for those)
